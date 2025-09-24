@@ -1,0 +1,47 @@
+@userId = YOUR_USER_ID_HERE
+@baseUrl = http://localhost:3000
+
+### Get all users
+GET {{baseUrl}}/api/user
+Accept: application/json
+
+###
+
+### Get user by ID
+GET {{baseUrl}}/api/user/{{userId}}
+Accept: application/json
+
+###
+
+### Create a new user
+POST {{baseUrl}}/api/user
+Content-Type: application/json
+
+{
+  "name": "Juan",
+  "lastName": "Pérez",
+  "email": "juan@example.com",
+  "passwordHash": "123456",
+  "isActive": true
+}
+
+###
+
+### Update user
+PUT {{baseUrl}}/api/user/{{userId}}
+Content-Type: application/json
+
+{
+  "id": "{{userId}}",
+  "name": "Juan Updated",
+  "lastName": "Pérez",
+  "email": "juan.updated@example.com",
+  "passwordHash": "newpass123",
+  "isActive": true
+}
+
+###
+
+### Delete user
+DELETE {{baseUrl}}/api/user/{{userId}}
+Accept: application/json
