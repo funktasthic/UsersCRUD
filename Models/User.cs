@@ -1,4 +1,6 @@
-namespace UserManagementApi.Models
+using System.ComponentModel.DataAnnotations;
+
+namespace UsersCRUD.Models
 {
     public class User
     {
