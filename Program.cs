@@ -1,28 +1,39 @@
 using Microsoft.EntityFrameworkCore;
-using UserManagementApi.Mappings;
+using UsersCRUD.Mappings;
 using UsersCRUD.Data;
+using UsersCRUD.Repositories;
+using UsersCRUD.Repositories.Interfaces;
+using UsersCRUD.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Database connection
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite(
-        builder.Configuration.GetConnectionString("DefaultConnection") 
-        ?? "Data Source=users.db"));
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Controllers
 builder.Services.AddControllers();
 
 // AutoMapper
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(typeof(UserProfile));
+
+// Repositories & Services
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Authentication & Authorization
-builder.Services.AddAuthentication();
-builder.Services.AddAuthorization();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Users CRUD API",
+        Version = "v1",
+        Description = "API para gestión de usuarios usando .NET 8"
+    });
+});
 
 // CORS
 builder.Services.AddCors(options =>
@@ -38,19 +49,25 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // ------------------
-// Database Migration
+// Database Migration + Seed
 // ------------------
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
     try
     {
-        // TODO: Seed initial data
-        dbContext.Database.Migrate();
+        dbContext.Database.Migrate(); // Aplica migraciones
+        if (app.Environment.IsDevelopment())
+        {
+            UsersCRUD.Data.Seeders.Seed.SeedData(dbContext);
+            logger.LogInformation("✅ Database seeded successfully");
+        }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"❌ Error migrating the data: {ex.Message}");
+        logger.LogError(ex, "❌ Error during migration or seeding");
     }
 }
 
@@ -60,14 +77,17 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Users CRUD API v1");
+    });
 }
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseCors("AllowAll");
 
+// Map controllers
 app.MapControllers();
 
 app.Run();
